@@ -1,0 +1,14 @@
+file_name,predicted_class,actual_class
+wildfire_01_aqua_modis_256x256_1km.tif,0,0
+wildfire_02_aqua_modis_256x256_1km.tif,0,0
+wildfire_03_aqua_modis_256x256_1km.tif,1,0
+haze_100.tif,1,1
+haze_102.tif,1,1
+haze_104.tif,2,1
+cloud_1.tif,2,2
+cloud_10.tif,2,2
+smoke_1005.tif,0,0
+land_1.tif,2,2
+seaside_1.tif,2,2
+dust_1.tif,1,2
+

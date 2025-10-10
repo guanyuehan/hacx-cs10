@@ -1,0 +1,44 @@
+# Ignore app folder
+app/
+!app/.gitkeep
+
+# Ignore all .tif files
+*.tif
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+Model outputs (optional - uncomment if you want to ignore these)
+output/predictions.csv
+output/eval_result.csv
+output/timing_results.json
+weights/*.pth
+weights/*.pt
+
