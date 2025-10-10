@@ -6,22 +6,13 @@ Simple evaluation system for satellite imagery classification models.
 
 ```
 evaluation/
-├── app/                          # Training & Inference code
-│   ├── model.py                 # Model architecture
-│   ├── dataset.py               # Data loading
-│   ├── train.py                 # Training script
-│   ├── inference.py             # Inference script
-│   ├── docker_entrypoint.py     # Docker entrypoint
-│   ├── Dockerfile               # Docker image
-│   ├── build_docker.sh          # Build Docker script
-│   ├── run_docker.sh            # Run Docker script
-│   └── requirements.txt         # App dependencies
+├── app/                          # Training, Inference code and dockerfile
 │
 ├── test_data/                    # Test images (.tif files)
 │   ├── cloud_1.tif
 │   ├── haze_100.tif
 │   ├── smoke_1005.tif
-│   └── ... (1247 files total)
+│   └── ...
 │
 ├── weights/                      # Model weights
 │   ├── resnet50_best.pth        # Trained model
@@ -205,11 +196,3 @@ python compute_metrics.py \
     --predictions ./output/predictions.csv \
     --weights /path/to/different/weights
 ```
-
-## Support
-
-For detailed documentation, see:
-- Training models: `app/` directory
-- Docker setup: `app/Dockerfile`
-- Script help: `python run_docker_evaluation.py --help`
-
