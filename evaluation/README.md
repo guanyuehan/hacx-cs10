@@ -130,8 +130,8 @@ After running, check these files:
 ## Class Mapping
 
 - **0** = smoke (includes wildfire)
-- **1** = haze (includes dust)
-- **2** = normal (cloud, land, seaside)
+- **1** = haze
+- **2** = normal (cloud, land, seaside, dust)
 
 ## Manual Usage
 
