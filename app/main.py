@@ -1,0 +1,8 @@
+from flask import Flask, url_for, request, render_template
+
+app = Flask(__name__)
+
+@app.route('/')
+@app.route('/index/')
+def index():
+	return render_template
