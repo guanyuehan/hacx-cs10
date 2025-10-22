@@ -1,2 +1,6 @@
 dataset
 .vscode
+runs
+__pycache__
+saves
+Models/saves
