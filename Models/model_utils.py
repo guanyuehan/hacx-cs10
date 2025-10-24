@@ -9,11 +9,14 @@ class BasicCNNModule(nn.Module):
         self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, **kwargs)
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=0.25)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.maxpool(x)
-        return self.relu(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        return x
     
 
 class BasicCNN(nn.Module):
@@ -65,7 +68,7 @@ class VGG16Tuned(nn.Module):
             for p in base.features.parameters(): p.requires_grad = False
         # replace classifier output
         in_f = base.classifier[-1].in_features
-        base.classifier[-1] = SimpleMLP(input_size=in_f, hidden_size=4096, output_size=num_classes)
+        base.classifier[-1] = nn.Linear(in_f, num_classes)
         self.trainable_model = base.classifier[-1]
         self.model = base
     def forward(self, x):
@@ -91,7 +94,7 @@ class ResNetTuned(nn.Module):
 
         # replace the final fully-connected layer
         in_f = base.fc.in_features
-        base.fc = SimpleMLP(input_size=in_f, hidden_size=4096, output_size=num_classes)
+        base.fc = nn.Linear(in_f, num_classes)
         self.trainable_model = base.fc
         self.model = base
 
@@ -237,10 +240,13 @@ def build_model(model_name="basiccnn", use_heads=False, num_classes=3,
         feature_dim = 4096
 
     elif model_name == "resnet50":
-        base = VGG16Tuned(num_classes=num_classes, pretrained=pretrained, freeze_features=freeze_features)
+        base = ResNetTuned(num_classes=num_classes, pretrained=pretrained, freeze_features=freeze_features)
         # expose pre-classifier features instead of logits
-        backbone = nn.Sequential(base.model.features, base.model.avgpool, nn.Flatten(), *list(base.model.classifier.children())[:-1])
-        feature_dim = 4096
+        backbone = nn.Sequential(
+            *list(base.model.children())[:-1],  # everything except fc
+            nn.Flatten()  # flatten 2D features to vector
+        )
+        feature_dim = base.model.fc.in_features
 
     else:
         raise ValueError("model_name must be one of: basiccnn, vgg16, resnet50")
@@ -251,3 +257,25 @@ def build_model(model_name="basiccnn", use_heads=False, num_classes=3,
                               use_hae=True, use_tex=True)
     else:
         return base
+
+if __name__ == "__main__":
+    # plain backbones
+    CNNunmasked = build_model("basiccnn", use_heads=False)
+    VGG16unmasked = build_model("vgg16", use_heads=False)
+    ResNet50unmasked = build_model("resnet50", use_heads=False)
+
+    # augmented versions
+    CNNmasked = build_model("basiccnn", use_heads=True)
+    VGG16masked = build_model("vgg16", use_heads=True)
+    ResNet50masked = build_model("resnet50", use_heads=True)
+
+    # quick test
+    for name, model in [("basiccnn+heads", CNNmasked), ("vgg16+heads", VGG16masked), ("resnet50+heads", ResNet50masked)]:
+        x = torch.randn(1,3,256,256)
+        y = model(x)
+        print(f"{name:15s} ->", tuple(y.shape))
+
+    for name, model in [("basiccnn", CNNunmasked), ("vgg16", VGG16unmasked), ("resnet50", ResNet50unmasked)]:
+        x = torch.randn(1,3,256,256)
+        y = model(x)
+        print(f"{name:15s} ->", tuple(y.shape))

@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 # 🔁 EDIT THIS import to wherever your build_model() lives.
 # If build_model is in your notebook, copy it into models.py and import from there.
-from models import build_model  # <-- change 'models' to your actual module if different
+from model_utils import build_model  # <-- change 'models' to your actual module if different
 
 # Class id order (must match your training + metrics)
 # 0=haze, 1=normal, 2=smoke (adjust if your project is different)
@@ -51,6 +51,31 @@ def infer_dir(model: torch.nn.Module, img_dir: Path, device: str) -> List[Tuple[
             print(f"[WARN] Skipping {p}: {e}")
     return rows
 
+"""test dir 
+------class1
+        ----imgs...
+------class2
+        ----imgs...
+
+"""
+def create_gt_csv(test_dir: Path, out_csv: Path):
+    rows = []
+    for class_dir in sorted(test_dir.iterdir()):
+        if not class_dir.is_dir():
+            continue
+        class_name = class_dir.name
+        if class_name not in CLASS_NAMES:
+            print(f"[WARN] Skipping unknown class dir: {class_name}")
+            continue
+        class_idx = CLASS_NAMES.index
+        for img_path in class_dir.iterdir():
+            if img_path.suffix.lower() in IMG_EXTS and img_path.is_file():
+                rows.append({"file_name": img_path.name, "actual_class": class_idx(class_name)})
+    df = pd.DataFrame(rows, columns=["file_name", "actual_class"])
+    df.to_csv(out_csv, index=False)
+    print(f"✅ Created ground-truth CSV: {out_csv} ({len(df)} rows)")
+    return out_csv
+
 
 def load_gt_map(gt_csv: Path):
     """Optional ground-truth CSV with columns: file_name,actual_class (ints)."""
@@ -73,9 +98,12 @@ def main():
     ap.add_argument("--out_csv", default="evaluation/output/sample_predictions.csv")
     ap.add_argument("--use_heads", action="store_true", help="Use the +heads variant")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
-    ap.add_argument("--gt_csv", default=None,
-                    help="(Optional) CSV with columns: file_name,actual_class")
+    ap.add_argument("--gt_csv", default=None, help="Optional ground-truth CSV file")
+
+
     args = ap.parse_args()
+    # produce ground truth csv from test dir using foldername and structure
+    gt_csv = create_gt_csv(Path(args.test_dir), Path(args.gt_csv))
 
     device = args.device
 
@@ -86,7 +114,7 @@ def main():
     model.to(device)
 
     # Optional GT
-    gt_map = load_gt_map(Path(args.gt_csv)) if args.gt_csv else {}
+    gt_map = load_gt_map(gt_csv)
 
     # Inference
     preds = infer_dir(model, Path(args.test_dir), device=device)
