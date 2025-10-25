@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as tvm
 
+#------ Basic CNN ---------------------------------------------------------
 class BasicCNNModule(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__()
@@ -258,6 +259,68 @@ def build_model(model_name="basiccnn", use_heads=False, num_classes=3,
     else:
         return base
 
+
+# --- Added helper functions for pipeline and inference ---
+
+ARCH_NORMALISATION = {
+    "basiccnn": {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0]},
+    "vgg16":    {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0]},
+    "resnet50": {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0]}
+}
+
+INPUT_SIZE = {"basiccnn": (256, 256), "vgg16": (256, 256), "resnet50": (256, 256)}
+
+
+def _to_device(device):
+    if isinstance(device, torch.device):
+        return device
+    if isinstance(device, str):
+        return torch.device(device)
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def load_model(arch_name: str, num_classes: int = 3, use_heads: bool = False,
+               pretrained: bool = True, freeze_features: bool = True):
+    model = build_model(arch_name, use_heads, num_classes, pretrained, freeze_features)
+    return model
+
+
+def load_checkpoint(model, weights_path: str, device="cpu", strict: bool = False):
+    dev = _to_device(device)
+    ckpt = torch.load(weights_path, map_location=dev)
+
+    if hasattr(model, "load_weights"):
+        try:
+            model.load_weights(weights_path, DEVICE=str(dev))
+            model.to(dev).eval()
+            return model
+        except Exception:
+            pass
+
+    state_dict = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
+    clean = {k.replace("module.", ""): v for k, v in state_dict.items()}
+    model.load_state_dict(clean, strict=strict)
+    return model.to(dev).eval()
+
+
+def preprocess_image(img_path: str, arch_name: str, device="cpu"):
+    from PIL import Image
+
+    key = arch_name.lower()
+    if key not in INPUT_SIZE:
+        raise ValueError(f"Unknown arch '{arch_name}', expected one of {list(INPUT_SIZE.keys())}")
+
+    img = Image.open(img_path).convert("RGB").resize(INPUT_SIZE[key], Image.BILINEAR)
+    x = torch.tensor(np.array(img)).permute(2, 0, 1).float() / 255.0
+
+    norm = ARCH_NORMALISATION[key]
+    mean = torch.tensor(norm["mean"]).view(3, 1, 1)
+    std = torch.tensor(norm["std"]).view(3, 1, 1)
+    x = (x - mean) / std
+
+    return x.unsqueeze(0).to(_to_device(device))
+
+
 if __name__ == "__main__":
     # plain backbones
     CNNunmasked = build_model("basiccnn", use_heads=False)
@@ -279,3 +342,4 @@ if __name__ == "__main__":
         x = torch.randn(1,3,256,256)
         y = model(x)
         print(f"{name:15s} ->", tuple(y.shape))
+
