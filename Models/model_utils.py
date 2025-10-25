@@ -307,22 +307,32 @@ def load_checkpoint(model, weights_path: str, device="cpu", strict: bool = False
     return model.to(dev).eval()
 
 
-def preprocess_image(img_path: str, arch_name: str, device="cpu"):
+def preprocess_image(img_path: str,
+                     arch_name: str,
+                     device: Union[str, torch.device] = "cpu") -> torch.Tensor:
+    """
+    Load an image tile from disk, resize to 256x256, convert to float tensor.
+    No mean/std normalization is applied here because the model was trained
+    directly on raw pixel intensities (besides resizing).
+
+    """
     from PIL import Image
+    import numpy as np
 
-    key = arch_name.lower()
-    if key not in INPUT_SIZE:
-        raise ValueError(f"Unknown arch '{arch_name}', expected one of {list(INPUT_SIZE.keys())}")
+    img = Image.open(img_path).convert("RGB")
+    img = img.resize((256, 256), resample=Image.BILINEAR)
 
-    img = Image.open(img_path).convert("RGB").resize(INPUT_SIZE[key], Image.BILINEAR)
-    x = torch.tensor(np.array(img)).permute(2, 0, 1).float() / 255.0
+    arr = np.array(img)            # [H,W,3], uint8 0-255
+    x = torch.tensor(arr).permute(2, 0, 1).float()  # [3,H,W], float32 0-255
 
-    norm = ARCH_NORMALISATION[key]
-    mean = torch.tensor(norm["mean"]).view(3, 1, 1)
-    std = torch.tensor(norm["std"]).view(3, 1, 1)
-    x = (x - mean) / std
+    # If training used ToTensor(), enable this:
+    #x = x / 255.0
 
-    return x.unsqueeze(0).to(_to_device(device))
+    x = x.unsqueeze(0)  # [1,3,H,W]
+    if isinstance(device, str):
+        device = torch.device(device)
+    x = x.to(device)
+    return x
 
 
 if __name__ == "__main__":
