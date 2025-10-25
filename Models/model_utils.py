@@ -4,8 +4,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as tvm
+from albumentations import Compose, Normalize
+from albumentations.pytorch import ToTensorV2
 from PIL import Image
-
+from typing import Union
 
 #------ Basic CNN ---------------------------------------------------------
 class BasicCNNModule(nn.Module):
@@ -319,14 +321,14 @@ def preprocess_image(img_path: str,
     from PIL import Image
     import numpy as np
 
+
     img = Image.open(img_path).convert("RGB")
-    img = img.resize((256, 256), resample=Image.BILINEAR)
-
-    arr = np.array(img)            # [H,W,3], uint8 0-255
-    x = torch.tensor(arr).permute(2, 0, 1).float()  # [3,H,W], float32 0-255
-
-    # If training used ToTensor(), enable this:
-    #x = x / 255.0
+    test_transform = Compose([
+        Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2(),
+    ])
+    img = test_transform(image=np.array(img))["image"]
+    x = img
 
     x = x.unsqueeze(0)  # [1,3,H,W]
     if isinstance(device, str):
