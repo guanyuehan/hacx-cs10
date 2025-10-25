@@ -60,7 +60,7 @@ from model_utils import (
 # This is the class order used when the model was TRAINED.
 # i.e. index in model logits -> semantic class.
 #
-# Based on your answer:
+# Based on our training setup, this is:
 #   0 = "haze"
 #   1 = "normal"
 #   2 = "smoke"
