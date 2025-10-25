@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as tvm
 from PIL import Image
+from typing import Union
+
 
 
 #------ Basic CNN ---------------------------------------------------------
@@ -326,7 +328,7 @@ def preprocess_image(img_path: str,
     x = torch.tensor(arr).permute(2, 0, 1).float()  # [3,H,W], float32 0-255
 
     # If training used ToTensor(), enable this:
-    #x = x / 255.0
+    # x = x / 255.0
 
     x = x.unsqueeze(0)  # [1,3,H,W]
     if isinstance(device, str):
